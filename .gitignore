@@ -396,3 +396,11 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+*.found
+phrases.dict
+3200.hashes
+3200.words
+2023.csv
+2023.dict
+phrases.old
+phrases.new.dict

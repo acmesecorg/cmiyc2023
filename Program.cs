@@ -5,6 +5,7 @@ var userNameKey = "";
 var givenName = "";
 var surName = "";
 var created = "";
+var timestamp = "";
 var city = "";
 var phone = "";
 var company = "";
@@ -37,7 +38,7 @@ foreach (var  file in files)
 
 
 
-outputCsv.Add("User,GivenName,Surname,Created,City,Phone,Company,Department,PasswordHash,Plain");
+outputCsv.Add("User,GivenName,Surname,Created,Timestamp,City,Phone,Company,CompanyTimestamp,Department,PasswordHash,Plain");
 
 foreach (var line in lines)
 {
@@ -66,7 +67,15 @@ foreach (var line in lines)
 
     if (prop == "GivenName") givenName = splits[1];
     if (prop == "SurName") surName = splits[1];
-    if (prop == "Created") created = splits[1];
+    if (prop == "Created")
+    {
+        var temp = splits[1];
+        var arr = temp.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        created = $"{arr[2]} {arr[1]} {arr[5]} {arr[3]}";
+
+        var date = DateTime.Parse(created).ToUniversalTime().AddHours(6);
+        timestamp = ((DateTimeOffset)date).ToUnixTimeSeconds().ToString();
+    }
     if (prop == "City") city = splits[1];
     if (prop == "Phone") phone = splits[1];
     if (prop == "Company") company = splits[1];
@@ -82,7 +91,7 @@ foreach (var line in lines)
         outputSurNames.Add(surName);
 
         //Write out csv
-        outputCsv.Add($"{userNameKey},{givenName},{surName},{created},{city},{phone},{company},{department},{passwordHash},{plain}");
+        outputCsv.Add($"{userNameKey},{givenName},{surName},{created},{timestamp},{city},{phone},{company},{company+timestamp},{department},{passwordHash},{plain}");
 
         //Check if we have bcrypt then write out -a 9 files
         if (passwordHash.StartsWith("$2a$08$"))
@@ -125,5 +134,46 @@ File.WriteAllLines(@"surnames.dic", outputSurNames.ToArray());
 
 //Dump out csv with founds
 File.WriteAllLines(@"2023.csv", outputCsv.ToArray());
+File.WriteAllLines(@"2023.dict", founds.Values.ToArray());
 
+var digits = new[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
+var specials = new[] { '$', '!', '@', '%' };
+
+var phrases = new HashSet<string>();
+
+//Dump out phrases only
+foreach (var found in founds.Values)
+{
+    if (found.Contains(" "))
+    {
+        var result = found.TrimEnd(digits);
+        result = result.TrimEnd(specials);
+
+        result = result.TrimStart(digits);
+        result = result.TrimStart(specials);
+
+        result = result.TrimEnd(digits);
+        result = result.TrimEnd(specials);
+
+        result = result.TrimStart(digits);
+        result = result.TrimStart(specials);
+
+        phrases.Add(result);
+    }
+}
+File.WriteAllLines(@"phrases.dict", phrases.ToArray());
+
+
+//Get new phrases
+var old = new HashSet<string>();
+var oldLines = File.ReadAllLines("phrases.old");
+
+var newPhrases = new List<String>();
+
+foreach (var newPhrase in phrases)
+{
+    if (!oldLines.Contains(newPhrase)) newPhrases.Add(newPhrase);
+}
+
+File.WriteAllLines(@"phrases.new.dict", newPhrases.ToArray());
 
